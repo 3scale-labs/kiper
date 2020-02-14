@@ -30,6 +30,7 @@ func main() {
 	runtime.RegisterPlugin("envoy_ext_authz_grpc", Factory{})
 
 	threescale.RegisterThreeScaleQueries()
+	threescale.RegisterRateLimitQueries()
 
 	if err := cmd.RootCommand.Execute(); err != nil {
 		fmt.Println(err)

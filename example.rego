@@ -3,43 +3,22 @@ package envoy.authz
 import input.attributes.request.http as http_request
 
 default allow = false
+default rate_limited = false
 
-token = {"valid": valid, "payload": payload} {
-    [_, encoded] := split(http_request.headers.authorization, " ")
-    [valid, _, payload] := io.jwt.decode_verify(encoded, {"secret": "secret"})
-}
+limited_user_ids := [ "a", "b" ]
 
 allow {
-    is_token_valid
-    is_path_valid
-    action_allowed
+    not rate_limited
+    update_limits_usage()
 }
 
-is_token_valid {
-  token.valid
-  is_path_valid
-  token.payload.nbf <= time.now_ns() < token.payload.exp
+rate_limited {
+    http_request.path == "/abc"
+    rate_limit({"by": {"path": http_request.path}, "count": 5, "seconds": 60})
 }
 
-action_allowed {
-  http_request.method == "GET"
-  token.payload.role == "guest"
-  glob.match("/people*", [], http_request.path)
-}
-
-action_allowed {
-  http_request.method == "GET"
-  token.payload.role == "admin"
-  glob.match("/people*", [], http_request.path)
-}
-
-action_allowed {
-  http_request.method == "POST"
-  token.payload.role == "admin"
-  glob.match("/people", [], http_request.path)
-  lower(input.parsed_body.firstname) != base64url.decode(token.payload.sub)
-}
-
-is_path_valid {
-  printpath(input) != "/people"
+rate_limited {
+    http_request.path == "/abc"
+    http_request.headers["user_id"] == limited_user_ids[_]
+    rate_limit({"by": {"path": http_request.path, "user_id": http_request.headers["user_id"]}, "count": 3, "seconds": 60})
 }
