@@ -23,6 +23,73 @@ rate_limited {
 ```
 
 
+Global rate limit based on client source IP with a set of restricted and unrestricted IPs.
+
+```
+# Let's imagine we want to rate limit based on client ip addresses the traffic to some servers
+#   * Global Limit by IP of 100 r/min
+#   * A set of IPs can do up to 200 r/min instead of 100r/min
+#   * A set of IPs can only do 10r/min as those are more restricted. 
+
+# Alias req to input.attributes, so we can get the "Source" doing req.source.address
+#	
+#  Why? see the golang structs: 
+#
+#  type Input struct {
+#		ParsedPath  []string    `json:"parsed_path"`
+#		ParsedQuery ParsedQuery `json:"parsed_query"`
+#		ParsedBody  ParsedBody  `json:"parsed_body"`
+#		Attributes  Attributes  `json:"attributes"`
+#	}
+#
+#	type Attributes struct {
+#		Source      Destination `json:"source"`
+#		Destination Destination `json:"destination"`
+#		Request     Request     `json:"request"`
+#   }
+
+import input.attributes as req
+
+# Set defaults.
+default allow = false
+default rate_limited = false
+
+# Define to arrays of IPs, the restricted and the unrestricted.
+non_restricted_ips = ['127.0.0.1','2.2.2.2']
+restricted_ips = ['172.16.0.1']
+
+# We allow the request to go through only if is "not" rate_limited.
+# All the conditions inside allow are treated as "AND".
+allow {
+    not rate_limited
+    update_limits_usage()
+}
+
+# Let's define all the rate_limited conditions. Those are evaluated and "ORed" together.
+
+
+# If the source address is in the non_restricted_ip list, we check for a 200r/60s limit.
+rate_limited {
+    req.source.address == non_restricted_ips[_]
+    rate_limit({"by": {"client_ip": req.source.address}, "count": 200, "seconds": 60})
+}
+
+# If the source address is in the restricted list, we check for a 20r/60s limit.
+rate_limited {
+    req.source.address == restricted_ips[_]
+    rate_limit({"by": {"client_ip": req.source.address}, "count": 20, "seconds": 60})
+}
+
+# If the source address is not in either list, we check for a 100r/60s limit.
+rate_limited {
+    req.source.address != restricted_ips[_]
+    req.source.address != non_restricted_ips[_]
+    rate_limit({"by": {"client_ip": req.source.address}, "count": 100, "seconds": 60})
+}
+```
+
+
+
 Different limits for two methods. The rest are unlimited:
 
 ```
