@@ -9,8 +9,7 @@ import (
 )
 
 func RegisterThreeScaleQueries() {
-	ast.RegisterBuiltin(PrintPathBuiltin)
-	topdown.RegisterFunctionalBuiltin1(PrintPathBuiltin.Name, PrintPathImpl)
+	// Add here queries for 3scale integration
 }
 
 func RegisterRateLimitQueries() {
