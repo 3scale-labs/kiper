@@ -55,8 +55,8 @@ default allow = false
 default rate_limited = false
 
 # Define to arrays of IPs, the restricted and the unrestricted.
-non_restricted_ips = ['127.0.0.1','2.2.2.2']
-restricted_ips = ['172.16.0.1']
+non_restricted_ips = {"127.0.0.1","2.2.2.2"}
+restricted_ips = {"172.16.0.1"}
 
 # We allow the request to go through only if is "not" rate_limited.
 # All the conditions inside allow are treated as "AND".
@@ -70,20 +70,20 @@ allow {
 
 # If the source address is in the non_restricted_ip list, we check for a 200r/60s limit.
 rate_limited {
-    req.source.address == non_restricted_ips[_]
+    non_restricted_ips[req.source.address]
     rate_limit({"by": {"client_ip": req.source.address}, "count": 200, "seconds": 60})
 }
 
 # If the source address is in the restricted list, we check for a 20r/60s limit.
 rate_limited {
-    req.source.address == restricted_ips[_]
+    restricted_ips[req.source.address]
     rate_limit({"by": {"client_ip": req.source.address}, "count": 20, "seconds": 60})
 }
 
 # If the source address is not in either list, we check for a 100r/60s limit.
 rate_limited {
-    req.source.address != restricted_ips[_]
-    req.source.address != non_restricted_ips[_]
+    not non_restricted_ips[req.source.address]
+    not restricted_ips[req.source.address]
     rate_limit({"by": {"client_ip": req.source.address}, "count": 100, "seconds": 60})
 }
 ```
