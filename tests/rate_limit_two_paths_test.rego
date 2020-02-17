@@ -1,4 +1,4 @@
-package envoy.authz
+package threescale.tests.rate_limit_two_paths
 
 import input.attributes.request.http as http_request
 

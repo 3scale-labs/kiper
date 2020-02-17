@@ -1,4 +1,4 @@
-package envoy.authz
+package threescale.tests.rate_limit_two_paths
 
 # Different limits for two paths. The rest are unlimited:
 
