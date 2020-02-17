@@ -3,21 +3,24 @@ package threescale.tests.rate_limit_two_paths
 import input.attributes.request.http as http_request
 
 test_path_abc_has_limit_of_2_rpmin {
-    allow with http_request as {"path": "/abc" }
-    allow with http_request as {"path": "/abc" }
-    not allow with http_request as {"path": "/abc" }
+    test_request := { "path": "/abc"}
+    allow with http_request as test_request
+    allow with http_request as test_request
+    not allow with http_request as test_request
 }
 
 test_path_def_has_limit_of_1_rpmin {
-    allow with http_request as {"path": "/def" }
-    not allow with http_request as {"path": "/def" }
+    test_request := { "path": "/def" }
+    allow with http_request as test_request
+    not allow with http_request as test_request
 }
 
 test_rest_of_paths_unlimited {
     # To test "unlimited", just make more reqs than the sum of the two other
     # limits to be sure.
-    allow with http_request as {"path": "/" }
-    allow with http_request as {"path": "/" }
-    allow with http_request as {"path": "/" }
-    allow with http_request as {"path": "/" }
+    test_request := { "path": "/" }
+    allow with http_request as test_request
+    allow with http_request as test_request
+    allow with http_request as test_request
+    allow with http_request as test_request
 }
