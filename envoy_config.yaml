@@ -33,7 +33,7 @@ static_resources:
                         google_grpc:
                           target_uri: 127.0.0.1:9191
                           stat_prefix: ext_authz
-                        timeout: 3s
+                        timeout: 5s
                   - name: envoy.router
                     typed_config: {}
   clusters:
