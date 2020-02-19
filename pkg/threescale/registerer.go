@@ -9,7 +9,8 @@ import (
 )
 
 func RegisterThreeScaleQueries() {
-	// Add here queries for 3scale integration
+	ast.RegisterBuiltin(ThreescaleAuthrepBuiltin)
+	topdown.RegisterFunctionalBuiltin1(ThreescaleAuthrepBuiltin.Name, AuthrepWithThreescaleImpl)
 }
 
 func RegisterRateLimitQueries() {
