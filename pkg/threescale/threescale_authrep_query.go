@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sync"
 
 	"github.com/3scale/3scale-go-client/threescale"
 
@@ -30,6 +31,7 @@ var ThreescaleAuthrepBuiltin = &ast.Builtin{
 }
 
 var portaConfigsCache = newPortaConfigsCache()
+var mutex = sync.Mutex{}
 
 func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 	service := serviceFromEnv()
@@ -95,6 +97,14 @@ func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 }
 
 func proxyConfig(serviceId string, environment string) (*porta.ProxyConfig, error) {
+	// Avoid multiple concurrent calls to Porta to fetch the config. In the
+	// future, if this becomes multi-tenant, the lock should be per
+	// serviceId+environment.
+	// Note that when the proxy config is not cached, it will be fetched from
+	// Porta in request time, which can be slow. We can optimize this later.
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	cachedProxyConfig, exists := portaConfigsCache.get(serviceId, environment)
 	if exists {
 		return cachedProxyConfig, nil
