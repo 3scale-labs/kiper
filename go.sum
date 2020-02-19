@@ -1,4 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+github.com/3scale/3scale-go-client v0.3.0 h1:ThsL1ZsjAjzMqpruVG8HyfnXVrfS9ZmIMHwJcMnupNY=
+github.com/3scale/3scale-go-client v0.3.0/go.mod h1:mIpZ1swgfSBVN7JqvxtY0AC9QaLHmhGvGsP9P71ZilQ=
+github.com/3scale/3scale-porta-go-client v0.0.3 h1:/jcEnBQqBDuJYQKvvmKUw6c4LoF4PWq57EAD4q6HiJ8=
+github.com/3scale/3scale-porta-go-client v0.0.3/go.mod h1:eXz9JDFNrbJRqJkDs39bMxO+m/L5pz51JMof3A8jQ1k=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.3 h1:wS8NNaIgtzapuArKIAjsyXtEN/IUjQkbw90xszUdS40=
