@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sync"
 
 	"github.com/3scale/3scale-go-client/threescale"
 
@@ -29,44 +30,24 @@ var ThreescaleAuthrepBuiltin = &ast.Builtin{
 	Decl: types.NewFunction(types.Args(types.A), types.B),
 }
 
+var portaConfigsCache = newPortaConfigsCache()
+var mutex = sync.Mutex{}
+
 func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
-	// TODO: avoid instantiating the clients on every request
-	apisonatorClient, err := apisonator.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-
-	adminPortalHost := os.Getenv(adminPortalEnv)
-	if adminPortalHost == "" {
-		return nil, fmt.Errorf("admin portal not set")
-	}
-	adminPortal, err := porta.NewAdminPortal(
-		adminPortalScheme, adminPortalHost, adminPortalPort,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	accessToken := os.Getenv(accessTokenEnv)
-	if accessToken == "" {
-		return nil, fmt.Errorf("access token not set")
-	}
-
 	service := serviceFromEnv()
 	if service == "" {
-		return ast.Boolean(false), fmt.Errorf("service ID not found")
+		return nil, fmt.Errorf("service ID not found")
 	}
 
-	portaClient := porta.NewThreeScale(adminPortal, accessToken, nil)
-	proxyConfig, err := portaClient.GetLatestProxyConfig(string(service), proxyConfigEnvironment)
+	proxyConfig, err := proxyConfig(string(service), proxyConfigEnvironment)
 	if err != nil {
-		return nil, err
+		return ast.Boolean(false), err
 	}
 
 	request := Input{}
 	_ = json.Unmarshal([]byte(httpRequest.String()), &request)
 
-	clientAuth := clientAuthFromProxyConfig(&proxyConfig.ProxyConfig)
+	clientAuth := clientAuthFromProxyConfig(proxyConfig)
 	if clientAuth == nil {
 		return ast.Boolean(false), fmt.Errorf("service credentials not found")
 	}
@@ -78,7 +59,7 @@ func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 
 	usage, err := usageFromMatchedRules(
 		request.Attributes.Request.HTTP.Path,
-		proxyConfig.ProxyConfig.Content.Proxy.ProxyRules,
+		proxyConfig.Content.Proxy.ProxyRules,
 	)
 	if err != nil {
 		return nil, err
@@ -101,6 +82,11 @@ func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 		},
 	}
 
+	// TODO: avoid instantiating client on every request
+	apisonatorClient, err := apisonator.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
 	resp, err := apisonatorClient.AuthRep(threescaleRequest)
 
 	if err != nil {
@@ -108,6 +94,47 @@ func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 	}
 
 	return ast.Boolean(resp.Success()), nil
+}
+
+func proxyConfig(serviceId string, environment string) (*porta.ProxyConfig, error) {
+	// Avoid multiple concurrent calls to Porta to fetch the config. In the
+	// future, if this becomes multi-tenant, the lock should be per
+	// serviceId+environment.
+	// Note that when the proxy config is not cached, it will be fetched from
+	// Porta in request time, which can be slow. We can optimize this later.
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	cachedProxyConfig, exists := portaConfigsCache.get(serviceId, environment)
+	if exists {
+		return cachedProxyConfig, nil
+	}
+
+	adminPortalHost := os.Getenv(adminPortalEnv)
+	if adminPortalHost == "" {
+		return nil, fmt.Errorf("admin portal not set")
+	}
+	adminPortal, err := porta.NewAdminPortal(
+		adminPortalScheme, adminPortalHost, adminPortalPort,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken := os.Getenv(accessTokenEnv)
+	if accessToken == "" {
+		return nil, fmt.Errorf("access token not set")
+	}
+
+	portaClient := porta.NewThreeScale(adminPortal, accessToken, nil)
+	proxyConfig, err := portaClient.GetLatestProxyConfig(serviceId, proxyConfigEnvironment)
+	if err != nil {
+		return nil, err
+	}
+
+	portaConfigsCache.set(serviceId, environment, &proxyConfig.ProxyConfig)
+
+	return &proxyConfig.ProxyConfig, nil
 }
 
 func clientAuthFromProxyConfig(proxyConfig *porta.ProxyConfig) *threescaleAPI.ClientAuth {
