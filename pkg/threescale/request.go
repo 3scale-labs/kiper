@@ -1,5 +1,7 @@
 package threescale
 
+import "strings"
+
 // The Input struct is defined by the "opa-istio-plugin":
 // https://github.com/open-policy-agent/opa-istio-plugin#example-input
 
@@ -8,6 +10,23 @@ type Input struct {
 	ParsedQuery ParsedQuery `json:"parsed_query"`
 	ParsedBody  ParsedBody  `json:"parsed_body"`
 	Attributes  Attributes  `json:"attributes"`
+}
+
+func (input *Input) queryArgs() map[string]string {
+	res := make(map[string]string)
+
+	splittedPath := strings.Split(input.Attributes.Request.HTTP.Path, "?")
+
+	if len(splittedPath) == 1 {
+		return res
+	}
+
+	for _, argString := range strings.Split(splittedPath[1], "&") {
+		splitted := strings.Split(argString, "=")
+		res[splitted[0]] = splitted[1]
+	}
+
+	return res
 }
 
 type Attributes struct {
