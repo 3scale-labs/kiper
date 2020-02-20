@@ -135,10 +135,9 @@ func updateUsage(count int, limit *opaLimit) error {
 		return err
 	}
 
-	// TODO: The get + set if not exists should be done atomically
-	_, exists := storage.internalStorage.Get(key)
-	if !exists {
-		storage.internalStorage.Set(key, limit.Count-1, time.Duration(limit.Seconds)*time.Second)
+	created := storage.create(key, limit.Count-1, time.Duration(limit.Seconds)*time.Second)
+
+	if created { // Already initialized with updated counter
 		return nil
 	}
 
