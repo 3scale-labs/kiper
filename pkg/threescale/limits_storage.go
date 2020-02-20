@@ -28,8 +28,10 @@ func (storage *LimitsStorage) get(key string) (int, bool) {
 	return val.(int), exists
 }
 
-func (storage *LimitsStorage) setWithTTL(key string, value int, duration time.Duration) {
-	storage.internalStorage.Set(key, value, duration)
+// Returns true if the key has been created. False otherwise.
+func (storage *LimitsStorage) create(key string, value int, duration time.Duration) bool {
+	alreadyExistsErr := storage.internalStorage.Add(key, value, duration)
+	return alreadyExistsErr == nil
 }
 
 func (storage *LimitsStorage) decrement(key string, value int) error {
