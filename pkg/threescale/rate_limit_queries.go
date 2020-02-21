@@ -41,7 +41,7 @@ func (limit *opaLimit) key() (string, error) {
 	return string(limitJSON), nil
 }
 
-var storage = newLimitsStorage()
+var storage = newInMemoryLimitsStorage()
 
 const limitsCtxKey = "limits_to_apply"
 
