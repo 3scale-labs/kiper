@@ -1,6 +1,7 @@
 package threescale
 
 import (
+	"os"
 	"time"
 )
 
@@ -25,6 +26,16 @@ type limitsStorage interface {
 	decrement(key string, value int) error
 }
 
+const redisUrlEnv = "REDIS_URL"
+
+// newLimitsStorage returns a Redis-based storage when a Redis URL is set and an
+// in-memory one otherwise.
 func newLimitsStorage() limitsStorage {
+	redisURL := os.Getenv(redisUrlEnv)
+
+	if redisURL != "" {
+		return newRedisLimitsStorage(redisURL)
+	}
+
 	return newInMemoryLimitsStorage()
 }
