@@ -15,19 +15,19 @@ func newInMemoryLimitsStorage() *inMemoryLimitsStorage {
 	return &inMemoryLimitsStorage{internalStorage: goCache}
 }
 
-func (storage *inMemoryLimitsStorage) get(key string) (int, bool) {
+func (storage *inMemoryLimitsStorage) get(key string) (int, bool, error) {
 	val, exists := storage.internalStorage.Get(key)
 
 	if !exists {
-		return 0, false
+		return 0, false, nil
 	}
 
-	return val.(int), exists
+	return val.(int), exists, nil
 }
 
-func (storage *inMemoryLimitsStorage) create(key string, value int, duration time.Duration) bool {
+func (storage *inMemoryLimitsStorage) create(key string, value int, duration time.Duration) (bool, error) {
 	alreadyExistsErr := storage.internalStorage.Add(key, value, duration)
-	return alreadyExistsErr == nil
+	return alreadyExistsErr == nil, nil
 }
 
 func (storage *inMemoryLimitsStorage) decrement(key string, value int) error {

@@ -41,7 +41,7 @@ func (limit *opaLimit) key() (string, error) {
 	return string(limitJSON), nil
 }
 
-var storage = newInMemoryLimitsStorage()
+var storage = newLimitsStorage()
 
 const limitsCtxKey = "limits_to_apply"
 
@@ -120,7 +120,10 @@ func withinLimits(count int, limit *opaLimit) (bool, error) {
 		return false, err
 	}
 
-	currentVal, exists := storage.get(key)
+	currentVal, exists, err := storage.get(key)
+	if err != nil {
+		return false, err
+	}
 
 	if !exists {
 		return limit.Count-count >= 0, nil
@@ -135,7 +138,10 @@ func updateUsage(count int, limit *opaLimit) error {
 		return err
 	}
 
-	created := storage.create(key, limit.Count-1, time.Duration(limit.Seconds)*time.Second)
+	created, err := storage.create(key, limit.Count-1, time.Duration(limit.Seconds)*time.Second)
+	if err != nil {
+		return err
+	}
 
 	if created { // Already initialized with updated counter
 		return nil
