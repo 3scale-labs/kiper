@@ -41,3 +41,10 @@ requests per second. To test this, you'll need to start a server in 8080 or choo
     (5/5), user_a (3/3), user_b (2/3).
     - `curl -v http://localhost:8000/abc -H "user_id:b"`: Limited: **total
     (6/5)**, user_a (3/3), user_b (3/3).
+
+### Use Redis as the storage for the limits
+
+By default, the limits are stored in memory. You can use Redis if you need to
+share the limits between several instances or need to persist them. Simply set
+the `REDIS_URL` env. It accepts a URL with this format: `redis://host:port/db`
+(`db` is optional).

@@ -1,40 +1,48 @@
 package threescale
 
 import (
+	"fmt"
+	"os"
 	"time"
-
-	gocache "github.com/patrickmn/go-cache"
 )
 
-// For now, we use gocache to store the limits. In order to implement shared
-// limits between instances, we could use a DB like Redis.
+// Note: this interface is not the best for some storage backends. For example,
+// in Redis, some of the operations could be performed in a single MULTI command
+// to save network round-trips or several limits could be updated in a single
+// pipeline. Something to think about in the future if a more efficient solution
+// is needed.
 
-type LimitsStorage struct {
-	internalStorage *gocache.Cache
+type limitsStorage interface {
+	// The first element returned is the value of the key. The second is a
+	// boolean that indicates whether the key exists or not.
+	get(key string) (int, bool, error)
+
+	// Creates a key with the given values and ttl, only when it does not exist.
+	// Returns true when the key was created because it did not exist before.
+	// Returns false if the key was not created because it was already set.
+	create(key string, value int, duration time.Duration) (bool, error)
+
+	// Decreases the value of a key by the given number. Returns an error if the
+	// key does not exist.
+	decrement(key string, value int) error
 }
 
-func newLimitsStorage() LimitsStorage {
-	goCache := gocache.New(gocache.NoExpiration, time.Minute)
-	return LimitsStorage{internalStorage: goCache}
-}
+const redisUrlEnv = "REDIS_URL"
 
-func (storage *LimitsStorage) get(key string) (int, bool) {
-	val, exists := storage.internalStorage.Get(key)
+// newLimitsStorage returns a Redis-based storage when a Redis URL is set and an
+// in-memory one otherwise.
+func newLimitsStorage() limitsStorage {
+	redisURL := os.Getenv(redisUrlEnv)
 
-	if !exists {
-		return 0, false
+	if redisURL != "" {
+		storage, err := newRedisLimitsStorage(redisURL)
+
+		if err != nil {
+			panic(fmt.Sprint("Error while configuring Redis: ", err))
+		}
+
+		return storage
 	}
 
-	return val.(int), exists
-}
-
-// Returns true if the key has been created. False otherwise.
-func (storage *LimitsStorage) create(key string, value int, duration time.Duration) bool {
-	alreadyExistsErr := storage.internalStorage.Add(key, value, duration)
-	return alreadyExistsErr == nil
-}
-
-func (storage *LimitsStorage) decrement(key string, value int) error {
-	_, err := storage.internalStorage.DecrementInt(key, value)
-	return err
+	return newInMemoryLimitsStorage()
 }
