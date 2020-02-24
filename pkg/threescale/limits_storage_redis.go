@@ -11,11 +11,14 @@ type redisLimitsStorage struct {
 	internalStorage *redis.Client
 }
 
-func newRedisLimitsStorage(redisURL string) *redisLimitsStorage {
-	opts := &redis.Options{
-		Addr: redisURL,
+func newRedisLimitsStorage(redisURL string) (*redisLimitsStorage, error) {
+	opts, err := redis.ParseURL(redisURL)
+
+	if err != nil {
+		return nil, err
 	}
-	return &redisLimitsStorage{internalStorage: redis.NewClient(opts)}
+
+	return &redisLimitsStorage{internalStorage: redis.NewClient(opts)}, nil
 }
 
 func (storage *redisLimitsStorage) get(key string) (int, bool, error) {

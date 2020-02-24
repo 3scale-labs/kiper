@@ -1,6 +1,7 @@
 package threescale
 
 import (
+	"fmt"
 	"os"
 	"time"
 )
@@ -34,7 +35,13 @@ func newLimitsStorage() limitsStorage {
 	redisURL := os.Getenv(redisUrlEnv)
 
 	if redisURL != "" {
-		return newRedisLimitsStorage(redisURL)
+		storage, err := newRedisLimitsStorage(redisURL)
+
+		if err != nil {
+			panic(fmt.Sprint("Error while configuring Redis: ", err))
+		}
+
+		return storage
 	}
 
 	return newInMemoryLimitsStorage()
