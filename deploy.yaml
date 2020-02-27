@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: 3scale-opa
+  labels:
+    app: 3scale-opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: 3scale-opa
+  template:
+    metadata:
+      labels:
+        app: 3scale-opa
+    spec:
+      containers:
+        - name: 3scale-opa
+          ports:
+            - name: http2
+              containerPort: 9001
+              protocol: TCP
+          image: quay.io/3scale/3scale-opa:latest
+          imagePullPolicy: Always
+          args: ["run","--server","--set=plugins.envoy_ext_authz_grpc.addr=:9001","--set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow","--set=decision_logs.console=true","--ignore=.*","/tmp/policies"]
+          volumeMounts:
+            - name: policies
+              mountPath: /tmp/policies/
+      volumes:
+        - name: policies
+          configMap:
+            name: 3scale-opa-policies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: threescale-opa
+spec:
+  selector:
+    app: 3scale-opa
+  ports:
+    - protocol: TCP
+      port: 9001
+      targetPort: 9001
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 3scale-opa-policies
+data:
+  example.rego: |
+    package envoy.authz
+    import input.attributes.request.http as http_request
+    default allow = false
+    default rate_limited = false
+    limited_user_ids := [ "a", "b" ]
+    allow {
+        not rate_limited
+        update_limits_usage()
+    }
+    rate_limited {
+        http_request.path == "/abc"
+        rate_limit({"by": {"path": http_request.path}, "count": 5, "seconds": 60})
+    }
+    rate_limited {
+        http_request.path == "/abc"
+        http_request.headers["user_id"] == limited_user_ids[_]
+        rate_limit({"by": {"path": http_request.path, "user_id": http_request.headers["user_id"]}, "count": 3, "seconds": 60})
+    }
