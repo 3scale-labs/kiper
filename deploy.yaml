@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: 3scale-opa
+  name: kiper
   labels:
-    app: 3scale-opa
+    app: kiper
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: 3scale-opa
+      app: kiper
   template:
     metadata:
       labels:
-        app: 3scale-opa
+        app: kiper
     spec:
       containers:
-        - name: 3scale-opa
+        - name: kiper
           ports:
             - name: http2
               containerPort: 9001
               protocol: TCP
-          image: quay.io/3scale/3scale-opa:latest
+          image: quay.io/3scale/kiper:latest
           imagePullPolicy: Always
           args: ["run","--server","--set=plugins.envoy_ext_authz_grpc.addr=:9001","--set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow","--set=decision_logs.console=true","--ignore=.*","/tmp/policies"]
           volumeMounts:
@@ -29,7 +29,7 @@ spec:
       volumes:
         - name: policies
           configMap:
-            name: 3scale-opa-policies
+            name: kiper-policies
 ---
 apiVersion: v1
 kind: Service
@@ -37,7 +37,7 @@ metadata:
   name: threescale-opa
 spec:
   selector:
-    app: 3scale-opa
+    app: kiper
   ports:
     - protocol: TCP
       port: 9001
@@ -46,7 +46,7 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: 3scale-opa-policies
+  name: kiper-policies
 data:
   example.rego: |
     package envoy.authz
