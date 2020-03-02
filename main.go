@@ -6,8 +6,8 @@ import (
 
 	"github.com/open-policy-agent/opa/runtime"
 
-	"github.com/3scale/3scale-opa/internal/istio_plugin"
-	"github.com/3scale/3scale-opa/pkg/threescale"
+	"github.com/3scale/kiper/internal/istio_plugin"
+	"github.com/3scale/kiper/pkg/threescale"
 	"github.com/open-policy-agent/opa/cmd"
 	"github.com/open-policy-agent/opa/plugins"
 )

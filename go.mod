@@ -1,4 +1,4 @@
-module github.com/3scale/3scale-opa
+module github.com/3scale/kiper
 
 go 1.13
 

@@ -12,7 +12,7 @@ jobs:
     #### expecting it in the form of
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
-    working_directory: /home/circleci/go/src/github.com/3scale/3scale-opa
+    working_directory: /home/circleci/go/src/github.com/3scale/kiper
     steps:
       - checkout
       - run:
@@ -36,4 +36,4 @@ jobs:
 
       # Build and test
       - run: go build
-      - run: ./3scale-opa test tests/ -v
+      - run: ./kiper test tests/ -v
