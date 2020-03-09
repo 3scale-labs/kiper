@@ -1,4 +1,4 @@
-package threescale
+package request
 
 import "strings"
 
@@ -12,7 +12,7 @@ type Input struct {
 	Attributes  Attributes  `json:"attributes"`
 }
 
-func (input *Input) queryArgs() map[string]string {
+func (input *Input) QueryArgs() map[string]string {
 	res := make(map[string]string)
 
 	splittedPath := strings.Split(input.Attributes.Request.HTTP.Path, "?")

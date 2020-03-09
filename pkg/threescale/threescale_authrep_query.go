@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/3scale/kiper/pkg/request"
+
 	"github.com/3scale/3scale-go-client/threescale"
 
 	threescaleAPI "github.com/3scale/3scale-go-client/threescale/api"
@@ -44,29 +46,29 @@ func AuthrepWithThreescaleImpl(httpRequest ast.Value) (ast.Value, error) {
 		return ast.Boolean(false), err
 	}
 
-	request := Input{}
-	_ = json.Unmarshal([]byte(httpRequest.String()), &request)
+	req := request.Input{}
+	_ = json.Unmarshal([]byte(httpRequest.String()), &req)
 
 	clientAuth := clientAuthFromProxyConfig(proxyConfig)
 	if clientAuth == nil {
 		return ast.Boolean(false), fmt.Errorf("service credentials not found")
 	}
 
-	appCreds := appCredsFromRequest(&request)
+	appCreds := appCredsFromRequest(&req)
 	if appCreds == nil {
 		return ast.Boolean(false), fmt.Errorf("app credentials not found")
 	}
 
 	usage, err := usageFromMatchedRules(
-		request.Attributes.Request.HTTP.Path,
+		req.Attributes.Request.HTTP.Path,
 		proxyConfig.Content.Proxy.ProxyRules,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// If there are no matches, it means that request to the request path are
-	// not authorized
+	// If there are no matches, it means that the path of the request is not
+	// allowed.
 	if len(usage) == 0 {
 		return ast.Boolean(false), nil
 	}
@@ -174,7 +176,7 @@ func usageFromMatchedRules(path string, rules []porta.ProxyRule) (threescaleAPI.
 	return res, nil
 }
 
-func appCredsFromRequest(request *Input) *threescaleAPI.Params {
+func appCredsFromRequest(request *request.Input) *threescaleAPI.Params {
 	userKey := userKeyFromRequest(request)
 
 	if userKey != "" {
@@ -196,12 +198,12 @@ func appCredsFromRequest(request *Input) *threescaleAPI.Params {
 // Note: the location of the user key is configurable in 3scale. It can be in
 // any header or query argument. For now we'll assume that if specified, it is
 // in the "user_key" query arg.
-func userKeyFromRequest(request *Input) string {
-	return request.queryArgs()["user_key"]
+func userKeyFromRequest(request *request.Input) string {
+	return request.QueryArgs()["user_key"]
 }
 
 // Note: same assumption as in userKeyFromRequest() for now.
-func appIdAndKeyFromRequest(request *Input) (appID string, appKey string) {
-	args := request.queryArgs()
+func appIdAndKeyFromRequest(request *request.Input) (appID string, appKey string) {
+	args := request.QueryArgs()
 	return args["app_id"], args["app_key"]
 }

@@ -1,4 +1,4 @@
-package threescale
+package ratelimit
 
 import (
 	"fmt"

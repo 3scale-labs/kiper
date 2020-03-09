@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/3scale/kiper/pkg/queries"
+
 	"github.com/open-policy-agent/opa/runtime"
 
 	"github.com/3scale/kiper/internal/istio_plugin"
-	"github.com/3scale/kiper/pkg/threescale"
 	"github.com/open-policy-agent/opa/cmd"
 	"github.com/open-policy-agent/opa/plugins"
 )
@@ -29,8 +30,8 @@ func main() {
 	runtime.RegisterPlugin("envoy.ext_authz.grpc", Factory{}) // for backwards compatibility
 	runtime.RegisterPlugin("envoy_ext_authz_grpc", Factory{})
 
-	threescale.RegisterThreeScaleQueries()
-	threescale.RegisterRateLimitQueries()
+	queries.RegisterThreeScaleQueries()
+	queries.RegisterRateLimitQueries()
 
 	if err := cmd.RootCommand.Execute(); err != nil {
 		fmt.Println(err)

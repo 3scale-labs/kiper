@@ -1,4 +1,4 @@
-package threescale
+package ratelimit
 
 import (
 	"encoding/json"
@@ -45,7 +45,7 @@ var storage = newLimitsStorage()
 
 const limitsCtxKey = "limits_to_apply"
 
-var rateLimitBuiltin = &ast.Builtin{
+var RateLimitBuiltin = &ast.Builtin{
 	Name: "rate_limit",
 	Decl: types.NewFunction(types.Args(types.A), types.B),
 }
@@ -55,7 +55,7 @@ var rateLimitBuiltin = &ast.Builtin{
 // the context so it can be applied later. When rate-limited, it cleans the
 // limits in the context, because in that case, we want to make sure that no
 // updates are applied.
-func rateLimitBuiltinImpl(limitValue ast.Value, bctx topdown.BuiltinContext) (ast.Value, error) {
+func RateLimitBuiltinImpl(limitValue ast.Value, bctx topdown.BuiltinContext) (ast.Value, error) {
 	limit := opaLimit{}
 	err := ast.As(limitValue, &limit)
 	if err != nil {
@@ -81,14 +81,14 @@ func rateLimitBuiltinImpl(limitValue ast.Value, bctx topdown.BuiltinContext) (as
 	return ast.Boolean(!withinLimits), nil
 }
 
-var updateLimitsUsageBuiltin = &ast.Builtin{
+var UpdateLimitsUsageBuiltin = &ast.Builtin{
 	Name: "update_limits_usage",
 	Decl: types.NewFunction(types.Args(), types.B),
 }
 
 // Updates the counters used to rate-limit with the values stored in the
 // context.
-func updateLimitsUsageBuiltinImpl(bctx topdown.BuiltinContext) (ast.Value, error) {
+func UpdateLimitsUsageBuiltinImpl(bctx topdown.BuiltinContext) (ast.Value, error) {
 	limits, exists := bctx.Cache.Get(limitsCtxKey)
 
 	if !exists || limits == nil {
