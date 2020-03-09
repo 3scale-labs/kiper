@@ -1,7 +1,11 @@
-package threescale
+package queries
 
 import (
 	"fmt"
+
+	"github.com/3scale/kiper/pkg/ratelimit"
+
+	"github.com/3scale/kiper/pkg/threescale"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown"
@@ -9,8 +13,8 @@ import (
 )
 
 func RegisterThreeScaleQueries() {
-	ast.RegisterBuiltin(ThreescaleAuthrepBuiltin)
-	topdown.RegisterFunctionalBuiltin1(ThreescaleAuthrepBuiltin.Name, AuthrepWithThreescaleImpl)
+	ast.RegisterBuiltin(threescale.ThreescaleAuthrepBuiltin)
+	topdown.RegisterFunctionalBuiltin1(threescale.ThreescaleAuthrepBuiltin.Name, threescale.AuthrepWithThreescaleImpl)
 }
 
 func RegisterRateLimitQueries() {
@@ -19,10 +23,10 @@ func RegisterRateLimitQueries() {
 }
 
 func registerRateLimitBuiltIn() {
-	ast.RegisterBuiltin(rateLimitBuiltin)
+	ast.RegisterBuiltin(ratelimit.RateLimitBuiltin)
 
-	name := rateLimitBuiltin.Name
-	funcImpl := rateLimitBuiltinImpl
+	name := ratelimit.RateLimitBuiltin.Name
+	funcImpl := ratelimit.RateLimitBuiltinImpl
 
 	// We can't use the helpers provided by OPA directly because we need to pass
 	// the builtinContext as a param. We use that to store the counters that
@@ -42,10 +46,10 @@ func registerRateLimitBuiltIn() {
 }
 
 func registerUpdateLimitsUsageBuiltin() {
-	ast.RegisterBuiltin(updateLimitsUsageBuiltin)
+	ast.RegisterBuiltin(ratelimit.UpdateLimitsUsageBuiltin)
 
-	name := updateLimitsUsageBuiltin.Name
-	funcImpl := updateLimitsUsageBuiltinImpl
+	name := ratelimit.UpdateLimitsUsageBuiltin.Name
+	funcImpl := ratelimit.UpdateLimitsUsageBuiltinImpl
 
 	builtinFunc := func(bctx topdown.BuiltinContext, args []*ast.Term, iter func(*ast.Term) error) error {
 		result, err := funcImpl(bctx)
