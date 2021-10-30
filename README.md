@@ -15,7 +15,7 @@ go build
 - Start the OPA server with the rules in `example.rego`:
 
 ```bash
-./kiper opa run --server --set=plugins.envoy_ext_authz_grpc.addr=:9191 --set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow --set=decision_logs.console=true --ignore=.* example.rego
+./kiper run --server --set=plugins.envoy_ext_authz_grpc.addr=:9191 --set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow --set=decision_logs.console=true --ignore=.* example.rego
 ```
 
 - Start Envoy with the given config file that authorizes using the server above:
