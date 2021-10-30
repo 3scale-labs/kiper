@@ -18,9 +18,9 @@ import (
 
 	ctx "golang.org/x/net/context"
 
-	ext_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	ext_authz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
-	ext_type "github.com/envoyproxy/go-control-plane/envoy/type"
+	ext_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	ext_authz_v3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
+	ext_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/metrics"
 	"github.com/open-policy-agent/opa/plugins"
@@ -89,7 +89,7 @@ func New(m *plugins.Manager, cfg *Config) plugins.Plugin {
 	}
 
 	// Register Authorization Server
-	ext_authz.RegisterAuthorizationServer(plugin.server, plugin)
+	ext_authz_v3.RegisterAuthorizationServer(plugin.server, plugin)
 
 	m.RegisterCompilerTrigger(plugin.compilerUpdated)
 
@@ -127,9 +127,7 @@ func (p *envoyExtAuthzGrpcServer) Stop(ctx context.Context) {
 	p.server.Stop()
 }
 
-func (p *envoyExtAuthzGrpcServer) Reconfigure(ctx context.Context, config interface{}) {
-	return
-}
+func (p *envoyExtAuthzGrpcServer) Reconfigure(ctx context.Context, config interface{}) {}
 
 func (p *envoyExtAuthzGrpcServer) compilerUpdated(txn storage.Transaction) {
 	p.preparedQueryDoOnce = new(sync.Once)
@@ -157,7 +155,7 @@ func (p *envoyExtAuthzGrpcServer) listen() {
 	logrus.Info("Listener exited.")
 }
 
-func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckRequest) (*ext_authz.CheckResponse, error) {
+func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz_v3.CheckRequest) (*ext_authz_v3.CheckResponse, error) {
 	start := time.Now()
 
 	bs, err := json.Marshal(req)
@@ -197,7 +195,7 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 		return nil, err
 	}
 
-	resp := &ext_authz.CheckResponse{}
+	resp := &ext_authz_v3.CheckResponse{}
 
 	switch decision := result.decision.(type) {
 	case bool:
@@ -222,8 +220,8 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 		}
 
 		if status == int32(code.Code_OK) {
-			resp.HttpResponse = &ext_authz.CheckResponse_OkResponse{
-				OkResponse: &ext_authz.OkHttpResponse{
+			resp.HttpResponse = &ext_authz_v3.CheckResponse_OkResponse{
+				OkResponse: &ext_authz_v3.OkHttpResponse{
 					Headers: responseHeaders,
 				},
 			}
@@ -238,13 +236,13 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 				return nil, errors.Wrap(err, "failed to get response http status")
 			}
 
-			deniedResponse := &ext_authz.DeniedHttpResponse{
+			deniedResponse := &ext_authz_v3.DeniedHttpResponse{
 				Headers: responseHeaders,
 				Body:    body,
 				Status:  httpStatus,
 			}
 
-			resp.HttpResponse = &ext_authz.CheckResponse_DeniedResponse{
+			resp.HttpResponse = &ext_authz_v3.CheckResponse_DeniedResponse{
 				DeniedResponse: deniedResponse,
 			}
 		}
@@ -256,7 +254,7 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 	err = p.log(ctx, input, result, err)
 
 	if err != nil {
-		resp := &ext_authz.CheckResponse{
+		resp := &ext_authz_v3.CheckResponse{
 			Status: &rpc_status.Status{
 				Code:    int32(code.Code_UNKNOWN),
 				Message: err.Error(),
@@ -282,8 +280,8 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 	if p.cfg.DryRun {
 		if resp.Status.Code != int32(code.Code_OK) {
 			resp.Status = &rpc_status.Status{Code: int32(code.Code_OK)}
-			resp.HttpResponse = &ext_authz.CheckResponse_OkResponse{
-				OkResponse: &ext_authz.OkHttpResponse{},
+			resp.HttpResponse = &ext_authz_v3.CheckResponse_OkResponse{
+				OkResponse: &ext_authz_v3.OkHttpResponse{},
 			}
 		}
 	}
@@ -421,12 +419,12 @@ func getResponseStatus(result map[string]interface{}) (int32, error) {
 	return status, nil
 }
 
-func getResponseHeaders(result map[string]interface{}) ([]*ext_core.HeaderValueOption, error) {
+func getResponseHeaders(result map[string]interface{}) ([]*ext_core_v3.HeaderValueOption, error) {
 	var ok bool
 	var val interface{}
 	var headers map[string]interface{}
 
-	responseHeaders := []*ext_core.HeaderValueOption{}
+	responseHeaders := []*ext_core_v3.HeaderValueOption{}
 
 	if val, ok = result["headers"]; !ok {
 		return responseHeaders, nil
@@ -442,12 +440,12 @@ func getResponseHeaders(result map[string]interface{}) ([]*ext_core.HeaderValueO
 			return nil, fmt.Errorf("type assertion error")
 		}
 
-		headerValue := &ext_core.HeaderValue{
+		headerValue := &ext_core_v3.HeaderValue{
 			Key:   key,
 			Value: headerVal,
 		}
 
-		headerValueOption := &ext_core.HeaderValueOption{
+		headerValueOption := &ext_core_v3.HeaderValueOption{
 			Header: headerValue,
 		}
 
@@ -472,13 +470,13 @@ func getResponseBody(result map[string]interface{}) (string, error) {
 	return body, nil
 }
 
-func getResponseHTTPStatus(result map[string]interface{}) (*ext_type.HttpStatus, error) {
+func getResponseHTTPStatus(result map[string]interface{}) (*ext_type_v3.HttpStatus, error) {
 	var ok bool
 	var val interface{}
 	var statusCode json.Number
 
-	status := &ext_type.HttpStatus{
-		Code: ext_type.StatusCode(ext_type.StatusCode_Forbidden),
+	status := &ext_type_v3.HttpStatus{
+		Code: ext_type_v3.StatusCode(ext_type_v3.StatusCode_Forbidden),
 	}
 
 	if val, ok = result["http_status"]; !ok {
@@ -494,11 +492,11 @@ func getResponseHTTPStatus(result map[string]interface{}) (*ext_type.HttpStatus,
 		return nil, fmt.Errorf("error converting JSON number to int: %v", err)
 	}
 
-	if _, ok := ext_type.StatusCode_name[int32(httpStatusCode)]; !ok {
-		return nil, fmt.Errorf("Invalid HTTP status code %v", httpStatusCode)
+	if _, ok := ext_type_v3.StatusCode_name[int32(httpStatusCode)]; !ok {
+		return nil, fmt.Errorf("invalid HTTP status code %v", httpStatusCode)
 	}
 
-	status.Code = ext_type.StatusCode(int32(httpStatusCode))
+	status.Code = ext_type_v3.StatusCode(int32(httpStatusCode))
 
 	return status, nil
 }
@@ -529,7 +527,7 @@ func getRevision(ctx context.Context, store storage.Store, txn storage.Transacti
 	return revision, nil
 }
 
-func getParsedPathAndQuery(req *ext_authz.CheckRequest) ([]interface{}, map[string]interface{}, error) {
+func getParsedPathAndQuery(req *ext_authz_v3.CheckRequest) ([]interface{}, map[string]interface{}, error) {
 	path := req.GetAttributes().GetRequest().GetHttp().GetPath()
 
 	unescapedPath, err := url.PathUnescape(path)
@@ -560,7 +558,7 @@ func getParsedPathAndQuery(req *ext_authz.CheckRequest) ([]interface{}, map[stri
 	return parsedPathInterface, parsedQueryInterface, nil
 }
 
-func getParsedBody(req *ext_authz.CheckRequest) (map[string]interface{}, error) {
+func getParsedBody(req *ext_authz_v3.CheckRequest) (map[string]interface{}, error) {
 	body := req.GetAttributes().GetRequest().GetHttp().GetBody()
 	headers := req.GetAttributes().GetRequest().GetHttp().GetHeaders()
 
